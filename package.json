@@ -1,0 +1,19 @@
+{
+  "name": "epiccraft-launcher",
+  "version": "1.0.0",
+  "description": "Launcher de Minecraft ultra liviano",
+  "main": "js/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "minecraft-launcher-core": "^3.12.0"
+  },
+  "devDependencies": {
+    "create-dmg": "^8.1.0",
+    "electron": "^30.0.0"
+  }
+}

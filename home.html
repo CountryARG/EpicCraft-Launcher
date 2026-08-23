@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EpicCraft Launcher</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .app-container { display: flex; flex: 1; height: calc(100vh - 80px); }
+    .sidebar {
+      width: 260px;
+      background-color: #161b22;
+      border-right: 1px solid #30363d;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #21262d;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+    }
+    .avatar { width: 32px; height: 32px; border-radius: 4px; }
+    .username { font-weight: 600; font-size: 14px; color: #f0f6fc; }
+    .config-section { display: flex; flex-direction: column; gap: 15px; }
+    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 12px; text-transform: uppercase; color: #8b949e; font-weight: 600; }
+    select, input[type="range"] {
+      width: 100%; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 8px; border-radius: 6px;
+    }
+    .main-content {
+      flex: 1; background-color: #000; position: relative; padding: 15px; display: flex; flex-direction: column;
+    }
+    .log-console {
+      flex: 1;
+      background: #050505;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #00ff66;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .bottom-bar {
+      height: 80px; background-color: #161b22; border-top: 1px solid #30363d;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 30px;
+    }
+    .progress-container { flex: 1; max-width: 400px; display: flex; flex-direction: column; gap: 6px; }
+    .progress-bar-bg { width: 100%; height: 12px; background: #21262d; border-radius: 6px; overflow: hidden; position: relative; }
+    .progress-bar-fill { width: 0%; height: 100%; background-color: #2ea44f; transition: width 0.05s linear; }
+    .progress-text { font-size: 12px; color: #8b949e; }
+    .launch-btn {
+      background-color: #238636; color: white; border: none; padding: 14px 40px;
+      font-size: 18px; font-weight: 700; border-radius: 6px; cursor: pointer;
+    }
+    .launch-btn:disabled { background-color: #21262d; color: #484f58; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="sidebar">
+      <div class="user-profile">
+        <img id="user-avatar" class="avatar" alt="skin" />
+        <span id="user-name" class="username">...</span>
+      </div>
+
+      <div class="config-section">
+        <div class="input-group">
+          <label for="version-select">Versión</label>
+          <select id="version-select">
+            <option value="">Cargando versiones...</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label>Memoria RAM</label>
+          <input type="range" id="ram-slider" min="2" max="16" step="1" value="4">
+          <span id="ram-display" style="color:#58a6ff; text-align:right;">4 GB</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div id="log-box" class="log-console">[SISTEMA] Iniciado con Electron liviano... Listo.</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="progress-container">
+      <span id="status-text" class="progress-text">Listo para iniciar</span>
+      <div class="progress-bar-bg">
+        <div id="progress-fill" class="progress-bar-fill"></div>
+      </div>
+    </div>
+
+    <button id="play-btn" class="launch-btn" onclick="launchGame()">JUGAR</button>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const https = require('https');
+
+    const currentUser = localStorage.getItem('username') || 'Jugador';
+    document.getElementById('user-name').innerText = currentUser;
+    document.getElementById('user-avatar').src = `https://mc-heads.net/avatar/${currentUser}/32`;
+
+    const ramSlider = document.getElementById('ram-slider');
+    ramSlider.addEventListener('input', (e) => {
+      document.getElementById('ram-display').innerText = `${e.target.value} GB`;
+    });
+
+    function loadMinecraftVersions() {
+      const select = document.getElementById('version-select');
+      https.get('https://launchermeta.mojang.com/mc/game/version_manifest.json', (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            select.innerHTML = '';
+            data.versions.filter(v => v.type === 'release').forEach(v => {
+              const opt = document.createElement('option');
+              opt.value = v.id;
+              opt.textContent = v.id;
+              select.appendChild(opt);
+            });
+          } catch (e) {
+            select.innerHTML = '<option value="">Error analizando versiones</option>';
+          }
+        });
+      }).on('error', () => {
+        select.innerHTML = '<option value="">Error de conexión</option>';
+      });
+    }
+    loadMinecraftVersions();
+
+    function appendLog(text) {
+      const logBox = document.getElementById('log-box');
+      logBox.innerText += `\n${text}`;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function launchGame() {
+      const selectedVersion = document.getElementById('version-select').value;
+      const selectedRam = ramSlider.value;
+      const playBtn = document.getElementById('play-btn');
+
+      if (!selectedVersion) return;
+
+      playBtn.disabled = true;
+      document.getElementById('progress-fill').style.width = '0%';
+      document.getElementById('status-text').innerText = "Iniciando descarga...";
+      document.getElementById('log-box').innerText = "[SISTEMA] Preparando cliente de Minecraft...";
+
+      ipcRenderer.send('launch-mc', {
+        username: currentUser,
+        version: selectedVersion,
+        ram: selectedRam
+      });
+    }
+
+    ipcRenderer.on('mc-progress', (event, data) => {
+      document.getElementById('progress-fill').style.width = data.percent + '%';
+      document.getElementById('status-text').innerText = `Descargando ${data.type}: ${data.task}/${data.total} (${data.percent}%)`;
+    });
+
+    ipcRenderer.on('mc-log', (event, log) => {
+      appendLog(log);
+    });
+
+    ipcRenderer.on('mc-closed', (event, code) => {
+      appendLog(`[SISTEMA] El juego se cerró con código: ${code}`);
+      document.getElementById('play-btn').disabled = false;
+      document.getElementById('status-text').innerText = "Listo para iniciar";
+    });
+  </script>
+</body>
+</html>

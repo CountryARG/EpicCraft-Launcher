@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EpicCraft Launcher - Login</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-card {
+      background: #161b22;
+      padding: 30px;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+      width: 320px;
+      text-align: center;
+    }
+    h2 { margin-bottom: 20px; color: #f0f6fc; }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #0d1117;
+      color: white;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #238636;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #2ea44f; }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <h2>EpicCraft</h2>
+    <input type="text" id="username-input" placeholder="Nombre de usuario" />
+    <button onclick="login()">Iniciar sesión</button>
+  </div>
+
+  <script>
+    function login() {
+      const user = document.getElementById('username-input').value.trim();
+      if (!user) return;
+
+      // Guardamos la clave exacta "username"
+      localStorage.setItem('username', user);
+
+      // Redirección directa a home.html
+      window.location.href = 'home.html';
+    }
+  </script>
+</body>
+</html>

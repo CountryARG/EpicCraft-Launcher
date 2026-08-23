@@ -32,7 +32,7 @@ Selecciona tu sistema operativo y arquitectura para descargar el instalador:
 ---
 Porque solo 32 bits?: La realidad es que aunque no lo sepas Windows tiene una emulacion de apps 32 bits (SYSWOW64) que puede ejecutar apps hechas
 especificamente a la arquitectura x86, Por eso preferimos tener un solo exe de 32 bits.
----
+
 ## 🛠️ Instrucciones de Instalación
 
 ### En macOS:

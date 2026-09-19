@@ -87,7 +87,7 @@ public class Home extends Fragment {
         root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(20), dp(12), dp(20), dp(12));
-        root.setBackgroundColor(0xff11151e);
+        EpicStyle.background(root);
         username = sessionUser;
         mods.restore(state);
         if (username == null) login();
@@ -124,10 +124,10 @@ public class Home extends Fragment {
     }
     private Button button(String value, Runnable action) {
         Button b = new Button(requireContext()); b.setAllCaps(false); b.setText(value);
-        b.setOnClickListener(v -> action.run()); return b;
+        EpicStyle.button(b, false); b.setOnClickListener(v -> action.run()); return b;
     }
     private void home() {
-        root.removeAllViews(); root.setGravity(Gravity.TOP);
+        root.removeAllViews(); root.setGravity(Gravity.TOP); EpicStyle.background(root);
         LinearLayout header = new LinearLayout(requireContext());
         header.setGravity(Gravity.CENTER_VERTICAL);
         header.addView(text("EpicCraft Launcher", 25), new LinearLayout.LayoutParams(0, -2, 1));
@@ -135,29 +135,37 @@ public class Home extends Fragment {
         gear.setContentDescription("Ajustes");
         header.addView(gear, new LinearLayout.LayoutParams(dp(56), dp(56)));
         root.addView(header);
+        TextView subtitle = text("JAVA EDITION  /  TU ESPACIO DE JUEGO", 11);
+        subtitle.setTextColor(EpicStyle.MUTED); subtitle.setLetterSpacing(.12f); root.addView(subtitle);
         LinearLayout columns = new LinearLayout(requireContext());
         boolean wide = getResources().getConfiguration().screenWidthDp >= 600;
         columns.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-        root.addView(columns, new LinearLayout.LayoutParams(-1, 0, 1));
+        LinearLayout.LayoutParams body = new LinearLayout.LayoutParams(-1, 0, 1);
+        body.topMargin = dp(14); body.bottomMargin = dp(16); root.addView(columns, body);
         LinearLayout left = new LinearLayout(requireContext()); left.setOrientation(1);
         columns.addView(left, wide ? new LinearLayout.LayoutParams(0, -1, 1) : new LinearLayout.LayoutParams(-1, -2));
         LinearLayout card = new LinearLayout(requireContext());
-        card.setGravity(Gravity.CENTER_VERTICAL); card.setBackgroundColor(0xff3b3f47);
+        card.setGravity(Gravity.CENTER_VERTICAL); EpicStyle.panel(card, 0xff303947);
         ImageView head = new ImageView(requireContext());
         head.setContentDescription("Cabeza de la skin de " + username);
         head.setImageResource(android.R.drawable.ic_menu_myplaces);
         card.addView(head, new LinearLayout.LayoutParams(dp(72), dp(72)));
         card.addView(text("Conectado como\n" + username, 19)); left.addView(card);
-        left.addView(button("Añadir cuenta", () -> ExtraCore.setValue(ExtraConstants.SELECT_AUTH_METHOD, true)));
+        LinearLayout.LayoutParams add = new LinearLayout.LayoutParams(-1, dp(52));
+        add.topMargin = dp(12); add.bottomMargin = dp(8);
+        left.addView(button("＋  Añadir cuenta", () -> ExtraCore.setValue(ExtraConstants.SELECT_AUTH_METHOD, true)), add);
         mcAccountSpinner accounts = requireActivity().findViewById(R.id.account_spinner);
         MinecraftAccount selected = accounts.getSelectedAccount();
         if (selected != null) left.addView(button("Cuenta: " + selected.username, this::chooseAccount));
         ScrollView scroll = new ScrollView(requireContext());
         console = text("CONSOLA\nListo. Tocá JUGAR para elegir la versión.\n", 12);
         console.setTypeface(Typeface.MONOSPACE); console.setTextIsSelectable(true);
-        console.setBackgroundColor(0xff080b10); scroll.addView(console);
-        columns.addView(scroll, wide ? new LinearLayout.LayoutParams(0, -1, 1.3f) : new LinearLayout.LayoutParams(-1, 0, 1));
-        play = button("JUGAR", this::versions);
+        console.setTextColor(0xffb2c8cf); console.setLineSpacing(dp(4), 1);
+        EpicStyle.panel(scroll, 0xff0c1521); scroll.addView(console);
+        LinearLayout.LayoutParams logs = wide ? new LinearLayout.LayoutParams(0, -1, 1.3f) : new LinearLayout.LayoutParams(-1, 0, 1);
+        if (wide) logs.leftMargin = dp(20); else logs.topMargin = dp(12);
+        columns.addView(scroll, logs);
+        play = button("▶   JUGAR", this::versions); EpicStyle.button(play, true);
         root.addView(play, new LinearLayout.LayoutParams(-1, dp(56)));
         loadHead(head, username);
     }
@@ -218,13 +226,11 @@ public class Home extends Fragment {
         mcAccountSpinner accounts = requireActivity().findViewById(R.id.account_spinner);
         MinecraftAccount account = accounts.getSelectedAccount();
         if (account == null) {
-            log("Agregá una cuenta de Minecraft para continuar.");
-            ExtraCore.setValue(ExtraConstants.SELECT_AUTH_METHOD, true); return;
+            log("Para descargar y jugar, vinculá tu cuenta de Minecraft desde Añadir cuenta. Tu usuario local identifica tu perfil del launcher.");
+            Toast.makeText(requireContext(), "Vinculá tu cuenta desde Añadir cuenta", Toast.LENGTH_LONG).show(); return;
         }
         if (account.isLocal() && !new File(Tools.DIR_HOME_VERSION, version + "/" + version + ".json").isFile()) {
-            new AlertDialog.Builder(requireContext()).setTitle("Versión no instalada")
-                .setMessage("El motor necesita una cuenta de Microsoft para descargar esta versión. El perfil local puede usar versiones ya instaladas.")
-                .setPositiveButton("Entendido", null).show(); return;
+            log("Esta versión aún no está instalada. Elegí una cuenta de Microsoft con Minecraft Java desde Ajustes para descargarla."); return;
         }
         try {
             MinecraftProfile profile = EpicMods.selectVersion(version);
@@ -239,6 +245,8 @@ public class Home extends Fragment {
         box.setPadding(dp(20), dp(20), dp(20), dp(20));
         detail = text("Preparando descarga…", 15); box.addView(detail);
         bar = new ProgressBar(requireContext(), null, android.R.attr.progressBarStyleHorizontal);
+        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(EpicStyle.ACCENT));
+        bar.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(EpicStyle.ACCENT));
         bar.setMax(100); bar.setIndeterminate(true); box.addView(bar, new LinearLayout.LayoutParams(-1, dp(30)));
         progress = new AlertDialog.Builder(requireContext()).setTitle("EpicCraft Launcher").setView(box)
             .setNegativeButton("Ver consola", (d, w) -> { progress = null; detail = null; bar = null; }).create();

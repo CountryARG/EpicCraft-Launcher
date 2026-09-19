@@ -54,7 +54,7 @@ def apply(root):
     gradle = root / 'app_pojavlauncher/build.gradle'
     text = gradle.read_text().replace('org.angelauramc.amethyst', 'com.nebulateam.epiccraft')
     text = text.replace('"Amethyst (Debug)"', '"EpicCraft Launcher"').replace('"Amethyst"', '"EpicCraft Launcher"')
-    text = text.replace('versionCode 10000000', 'versionCode 10000001')
+    text = text.replace('versionCode 10000000', 'versionCode 10000002')
     gradle.write_text(text)
     for item in (BASE / 'overlay').rglob('*'):
         if item.is_file():

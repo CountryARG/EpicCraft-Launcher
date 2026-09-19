@@ -17,6 +17,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - name: Preparar motor y cambios EpicCraft
         run: python3 android-launcher/prepare.py --destination engine
       - name: Instalar herramientas del motor

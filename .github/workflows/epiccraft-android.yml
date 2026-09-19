@@ -43,8 +43,19 @@ jobs:
         run: |
           bash scripts/languagelist_updater.sh
           gradle :app_pojavlauncher:assembleDebug --stacktrace
+      - name: Verificar pantallas en Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          target: default
+          disable-animations: true
+          script: |
+            adb install engine/app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk
+            python3 android-launcher/ui_smoke.py
       - uses: actions/upload-artifact@v4
         with:
           name: EpicCraft-APK
           path: engine/app_pojavlauncher/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+

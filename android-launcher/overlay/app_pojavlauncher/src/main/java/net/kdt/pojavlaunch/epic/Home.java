@@ -31,6 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 public class Home extends Fragment {
+    private static String sessionUser;
+    private final EpicMods mods = new EpicMods(this, this::log);
     private LinearLayout root;
     private TextView console, detail;
     private Button play;
@@ -76,7 +78,7 @@ public class Home extends Fragment {
                 detail.setText("Descargando: " + s.path + "\n" + count
                     + "\nIncluye archivos existentes verificados.");
             }
-            if (play != null) play.setEnabled(!fetching && !ProgressKeeper.hasOngoingTasks());
+            if (play != null) play.setEnabled(!fetching && !mods.isBusy() && !ProgressKeeper.hasOngoingTasks());
             handler.postDelayed(this, 150);
         }
     };
@@ -86,13 +88,14 @@ public class Home extends Fragment {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(20), dp(12), dp(20), dp(12));
         root.setBackgroundColor(0xff11151e);
-        if (state != null) username = state.getString("epicUser");
-        if (username == null) EpicLogin.show(root, value -> { username = value; home(); });
+        username = sessionUser;
+        mods.restore(state);
+        if (username == null) login();
         else home();
         return root;
     }
     @Override public void onSaveInstanceState(@NonNull Bundle state) {
-        super.onSaveInstanceState(state); state.putString("epicUser", username);
+        super.onSaveInstanceState(state); mods.save(state);
     }
     @Override public void onStart() {
         super.onStart();
@@ -125,7 +128,13 @@ public class Home extends Fragment {
     }
     private void home() {
         root.removeAllViews(); root.setGravity(Gravity.TOP);
-        root.addView(text("EpicCraft Launcher", 25));
+        LinearLayout header = new LinearLayout(requireContext());
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.addView(text("EpicCraft Launcher", 25), new LinearLayout.LayoutParams(0, -2, 1));
+        Button gear = button("⚙", this::settings);
+        gear.setContentDescription("Ajustes");
+        header.addView(gear, new LinearLayout.LayoutParams(dp(56), dp(56)));
+        root.addView(header);
         LinearLayout columns = new LinearLayout(requireContext());
         boolean wide = getResources().getConfiguration().screenWidthDp >= 600;
         columns.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
@@ -139,10 +148,10 @@ public class Home extends Fragment {
         head.setImageResource(android.R.drawable.ic_menu_myplaces);
         card.addView(head, new LinearLayout.LayoutParams(dp(72), dp(72)));
         card.addView(text("Conectado como\n" + username, 19)); left.addView(card);
-        left.addView(text("Perfil local del launcher. Elegí tu cuenta de Minecraft en la barra superior.", 13));
-        left.addView(button("Cuenta de Minecraft", () -> ExtraCore.setValue(ExtraConstants.SELECT_AUTH_METHOD, true)));
-        left.addView(button("Último registro del juego", this::readGameLog));
-        left.addView(button("Cambiar usuario", () -> EpicLogin.show(root, value -> { username = value; home(); })));
+        left.addView(button("Añadir cuenta", () -> ExtraCore.setValue(ExtraConstants.SELECT_AUTH_METHOD, true)));
+        mcAccountSpinner accounts = requireActivity().findViewById(R.id.account_spinner);
+        MinecraftAccount selected = accounts.getSelectedAccount();
+        if (selected != null) left.addView(button("Cuenta: " + selected.username, this::chooseAccount));
         ScrollView scroll = new ScrollView(requireContext());
         console = text("CONSOLA\nListo. Tocá JUGAR para elegir la versión.\n", 12);
         console.setTypeface(Typeface.MONOSPACE); console.setTextIsSelectable(true);
@@ -151,6 +160,43 @@ public class Home extends Fragment {
         play = button("JUGAR", this::versions);
         root.addView(play, new LinearLayout.LayoutParams(-1, dp(56)));
         loadHead(head, username);
+    }
+    private void login() {
+        username = null; sessionUser = null; closeProgress();
+        console = null; play = null;
+        EpicLogin.show(root, value -> { username = value; sessionUser = value; home(); });
+    }
+    private void settings() {
+        new AlertDialog.Builder(requireContext()).setTitle("Ajustes")
+            .setItems(new String[]{"Importar mods Java (.jar)", "Instalar Fabric", "Instalar Forge",
+                "Cambiar usuario", "Elegir cuenta de Minecraft", "Último registro del juego"}, (dialog, which) -> {
+                if (ProgressKeeper.hasOngoingTasks() || mods.isBusy()) {
+                    Toast.makeText(requireContext(), "Esperá a que termine la operación actual", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (which == 0) mods.chooseVersion();
+                else if (which == 1) Tools.swapFragment(requireActivity(),
+                    net.kdt.pojavlaunch.fragments.FabricInstallFragment.class,
+                    net.kdt.pojavlaunch.fragments.FabricInstallFragment.TAG, null);
+                else if (which == 2) Tools.swapFragment(requireActivity(),
+                    net.kdt.pojavlaunch.fragments.ForgeInstallFragment.class,
+                    net.kdt.pojavlaunch.fragments.ForgeInstallFragment.TAG, null);
+                else if (which == 3) login();
+                else if (which == 4) chooseAccount();
+                else readGameLog();
+            }).setNegativeButton("Cerrar", null).show();
+    }
+    private void chooseAccount() {
+        mcAccountSpinner accounts = requireActivity().findViewById(R.id.account_spinner);
+        int count = accounts.getCount() - 1;
+        if (count <= 0) { ExtraCore.setValue(ExtraConstants.SELECT_AUTH_METHOD, true); return; }
+        String[] names = new String[count];
+        for (int i = 0; i < count; i++) names[i] = String.valueOf(accounts.getItemAtPosition(i + 1));
+        new AlertDialog.Builder(requireContext()).setTitle("Cuenta de Minecraft")
+            .setItems(names, (dialog, index) -> {
+                accounts.setSelection(index + 1);
+                accounts.post(() -> { if (root != null && username != null) home(); });
+            }).setNegativeButton("Cancelar", null).show();
     }
     private void log(String line) {
         if (console == null) return;
@@ -180,16 +226,8 @@ public class Home extends Fragment {
                 .setMessage("El motor necesita una cuenta de Microsoft para descargar esta versión. El perfil local puede usar versiones ya instaladas.")
                 .setPositiveButton("Entendido", null).show(); return;
         }
-        LauncherProfiles.load();
-        String key = LauncherPreferences.DEFAULT_PREF.getString(LauncherPreferences.PREF_KEY_CURRENT_PROFILE, "");
-        MinecraftProfile profile = LauncherProfiles.mainProfileJson.profiles.get(key);
-        if (profile == null) {
-            key = LauncherProfiles.getFreeProfileKey(); profile = MinecraftProfile.getDefaultProfile();
-            profile.name = "EpicCraft"; LauncherProfiles.mainProfileJson.profiles.put(key, profile);
-            LauncherPreferences.DEFAULT_PREF.edit().putString(LauncherPreferences.PREF_KEY_CURRENT_PROFILE, key).apply();
-        }
-        profile.lastVersionId = version;
         try {
+            MinecraftProfile profile = EpicMods.selectVersion(version);
             LauncherProfiles.write(); DownloadStatus.reset();
             log("Preparando Minecraft " + version + "…");
             ExtraCore.setValue(ExtraConstants.LAUNCH_GAME, true);
@@ -247,3 +285,4 @@ public class Home extends Fragment {
         });
     }
 }
+

@@ -22,7 +22,9 @@ jobs:
       - name: Preparar motor y cambios EpicCraft
         run: python3 android-launcher/prepare.py --destination engine
       - name: Instalar herramientas del motor
-        run: sdkmanager 'platforms;android-37' 'ndk;27.3.13750724'
+        run: |
+          sdkmanager 'platforms;android-36' 'ndk;27.3.13750724'
+          sed -i 's/compileSdk = 37/compileSdk = 36/g' engine/app_pojavlauncher/build.gradle
       - name: Obtener Java 8 para Android, como en el flujo del motor
         uses: dawidd6/action-download-artifact@v9
         with:

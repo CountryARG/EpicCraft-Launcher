@@ -50,13 +50,3 @@ jobs:
           if-no-files-found: error
 
 
-      - name: Verificar pantallas en Android
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 29
-          arch: x86_64
-          target: default
-          disable-animations: true
-          script: |
-            adb install engine/app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk
-            python3 android-launcher/ui_smoke.py

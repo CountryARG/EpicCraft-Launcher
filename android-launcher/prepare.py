@@ -50,11 +50,14 @@ def apply(root):
     source.write_text(patch_download(source.read_text()))
     launcher = root / 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/LauncherActivity.java'
     launcher.write_text(replace_once(launcher.read_text(), '        checkNotificationPermission();', '        // Notification permission is not requested on the local login screen.'))
+    launcher.write_text(replace_once(launcher.read_text(),
+        'Toast.makeText(this, R.string.no_saved_accounts, Toast.LENGTH_LONG).show();\n            ExtraCore.setValue(ExtraConstants.SELECT_AUTH_METHOD, true);',
+        'Toast.makeText(this, "Vinculá tu cuenta de Minecraft desde Añadir cuenta para jugar", Toast.LENGTH_LONG).show();'))
     login = root / 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/epic/EpicLogin.java'
     gradle = root / 'app_pojavlauncher/build.gradle'
     text = gradle.read_text().replace('org.angelauramc.amethyst', 'com.nebulateam.epiccraft')
     text = text.replace('"Amethyst (Debug)"', '"EpicCraft Launcher"').replace('"Amethyst"', '"EpicCraft Launcher"')
-    text = text.replace('versionCode 10000000', 'versionCode 10000002')
+    text = text.replace('versionCode 10000000', 'versionCode 10000003')
     gradle.write_text(text)
     for item in (BASE / 'overlay').rglob('*'):
         if item.is_file():

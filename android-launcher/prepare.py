@@ -70,7 +70,8 @@ def main():
         sys.exit('La carpeta de destino ya existe. Elegí una carpeta nueva para no sobrescribir trabajo.')
     run('git', 'clone', '--no-checkout', REPOSITORY, str(destination))
     run('git', 'checkout', '--detach', REVISION, cwd=destination)
-    run('git', 'submodule', 'update', '--init', '--recursive', cwd=destination)
+    run('git', '-c', 'url.https://github.com/.insteadOf=git@github.com:',
+        'submodule', 'update', '--init', '--recursive', cwd=destination)
     apply(destination)
     print('Abrí esta carpeta en Android Studio o usá el flujo de GitHub Actions incluido.')
 

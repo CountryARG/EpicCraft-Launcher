@@ -1,0 +1,46 @@
+name: Compilar EpicCraft APK
+on:
+  push:
+    branches: ['epiccraft-android-build']
+    paths: ['android-launcher/**', '.github/workflows/epiccraft-android.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - name: Preparar motor y cambios EpicCraft
+        run: python3 android-launcher/prepare.py --destination engine
+      - name: Instalar herramientas del motor
+        run: sdkmanager 'platforms;android-37' 'ndk;27.3.13750724'
+      - name: Obtener Java 8 para Android, como en el flujo del motor
+        uses: dawidd6/action-download-artifact@v9
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build.yml
+          path: engine/app_pojavlauncher/src/main/assets/components/jre
+          workflow_conclusion: completed
+          repo: AngelAuraMC/angelauramc-openjdk-build
+          branch: buildjre8
+          name: jre8-pojav
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.1'
+      - name: Compilar APK de prueba
+        working-directory: engine
+        run: |
+          bash scripts/languagelist_updater.sh
+          gradle :app_pojavlauncher:assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EpicCraft-APK
+          path: engine/app_pojavlauncher/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

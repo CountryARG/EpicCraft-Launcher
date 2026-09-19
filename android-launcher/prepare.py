@@ -48,6 +48,9 @@ def patch_download(text):
 def apply(root):
     source = root / 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/tasks/MinecraftDownloader.java'
     source.write_text(patch_download(source.read_text()))
+    launcher = root / 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/LauncherActivity.java'
+    launcher.write_text(replace_once(launcher.read_text(), '        checkNotificationPermission();', '        // Notification permission is not requested on the local login screen.'))
+    login = root / 'app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/epic/EpicLogin.java'
     gradle = root / 'app_pojavlauncher/build.gradle'
     text = gradle.read_text().replace('org.angelauramc.amethyst', 'com.nebulateam.epiccraft')
     text = text.replace('"Amethyst (Debug)"', '"EpicCraft Launcher"').replace('"Amethyst"', '"EpicCraft Launcher"')
@@ -58,6 +61,7 @@ def apply(root):
             target = root / item.relative_to(BASE / 'overlay')
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(item, target)
+    login.write_text(login.read_text().replace('login.setText("Iniciar sesión");', 'login.setAllCaps(false); login.setText("Iniciar sesión");'))
     shutil.copy2(BASE / 'README.md', root / 'EPICCRAFT.md')
     print('EpicCraft preparado en:', root)
 

@@ -123,7 +123,7 @@ public class Home extends Fragment {
         return v;
     }
     private Button button(String value, Runnable action) {
-        Button b = new Button(requireContext()); b.setText(value);
+        Button b = new Button(requireContext()); b.setAllCaps(false); b.setText(value);
         b.setOnClickListener(v -> action.run()); return b;
     }
     private void home() {
